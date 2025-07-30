@@ -1,0 +1,132 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kegel Exercise Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        h2 { color: #333; }
+        input, button { margin: 5px; padding: 5px; }
+        table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; }
+        table { width: 100%; margin-top: 20px; }
+        .section { background: #fff; padding: 10px; margin-bottom: 15px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h2>Kegel Exercise Tracker</h2>
+    <div class="section">
+        <label>Date: </label><span id="currentDate"></span><br><br>
+
+        <h3>Morning</h3>
+        <input type="number" id="m1" placeholder="Reading 1">
+        <input type="number" id="m2" placeholder="Reading 2">
+        <input type="number" id="m3" placeholder="Reading 3">
+        <input type="number" id="m4" placeholder="Reading 4">
+        <input type="number" id="m5" placeholder="Reading 5">
+        <input type="number" id="mr" placeholder="Rapid Count">
+
+        <h3>Afternoon</h3>
+        <input type="number" id="a1" placeholder="Reading 1">
+        <input type="number" id="a2" placeholder="Reading 2">
+        <input type="number" id="a3" placeholder="Reading 3">
+        <input type="number" id="a4" placeholder="Reading 4">
+        <input type="number" id="a5" placeholder="Reading 5">
+        <input type="number" id="ar" placeholder="Rapid Count">
+
+        <h3>Night</h3>
+        <input type="number" id="n1" placeholder="Reading 1">
+        <input type="number" id="n2" placeholder="Reading 2">
+        <input type="number" id="n3" placeholder="Reading 3">
+        <input type="number" id="n4" placeholder="Reading 4">
+        <input type="number" id="n5" placeholder="Reading 5">
+        <input type="number" id="nr" placeholder="Rapid Count"><br><br>
+
+        <button onclick="saveData()">Save Entry</button>
+    </div>
+
+    <div class="section">
+        <h3>Past Entries</h3>
+        <table id="logTable">
+            <tr>
+                <th>Date</th><th>Morning</th><th>Afternoon</th><th>Night</th>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h3>Progress Graph (Average Hold per Day)</h3>
+        <canvas id="progressChart" width="400" height="200"></canvas>
+    </div>
+
+    <script>
+        document.getElementById("currentDate").textContent = new Date().toLocaleDateString();
+
+        function saveData() {
+            const date = new Date().toLocaleDateString();
+            const data = {
+                date,
+                morning: [m1.value, m2.value, m3.value, m4.value, m5.value, mr.value],
+                afternoon: [a1.value, a2.value, a3.value, a4.value, a5.value, ar.value],
+                night: [n1.value, n2.value, n3.value, n4.value, n5.value, nr.value]
+            };
+
+            let log = JSON.parse(localStorage.getItem("kegelLog") || "[]");
+            log.push(data);
+            localStorage.setItem("kegelLog", JSON.stringify(log));
+            renderTable();
+            renderGraph();
+        }
+
+        function renderTable() {
+            const table = document.getElementById("logTable");
+            const log = JSON.parse(localStorage.getItem("kegelLog") || "[]");
+
+            table.innerHTML = `<tr><th>Date</th><th>Morning</th><th>Afternoon</th><th>Night</th></tr>`;
+            log.forEach(entry => {
+                table.innerHTML += `<tr>
+                    <td>${entry.date}</td>
+                    <td>${entry.morning.join(", ")}</td>
+                    <td>${entry.afternoon.join(", ")}</td>
+                    <td>${entry.night.join(", ")}</td>
+                </tr>`;
+            });
+        }
+
+        function renderGraph() {
+            const ctx = document.getElementById("progressChart").getContext("2d");
+            const log = JSON.parse(localStorage.getItem("kegelLog") || "[]");
+
+            const labels = log.map(entry => entry.date);
+            const data = log.map(entry => {
+                const allHold = [...entry.morning.slice(0, 5), ...entry.afternoon.slice(0, 5), ...entry.night.slice(0, 5)];
+                const nums = allHold.map(n => parseInt(n)).filter(n => !isNaN(n));
+                return nums.reduce((a, b) => a + b, 0) / nums.length;
+            });
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Avg Hold Time (secs)',
+                        data: data,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        renderTable();
+        renderGraph();
+    </script>
+</body>
+</html>
